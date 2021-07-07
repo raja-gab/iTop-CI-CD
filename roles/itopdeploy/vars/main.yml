@@ -1,0 +1,3 @@
+---
+# vars file for itopdeploy
+mariadb_password : password

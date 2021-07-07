@@ -1,0 +1,29 @@
+---
+# tasks file for itopbuild
+- name: Ensure need packages are installed.
+  package:
+    name: git
+    state: present
+- name: Clone repository from gogs
+  git:
+    repo: http://10.112.42.91/rajagabsi/iTop.git
+    dest: "/root/iTop2-{{ branch }}"
+    version: "{{ branch_prefix }}{{ branch }}"
+- name: Template dockerfile
+  template:
+    src: Dockerfile.j2
+    dest: "/root/iTop2-{{ branch }}/Dockerfile"
+- name: Build and push iTop to quay.io
+  podman_image:
+    state: build
+    build:
+      cache: no
+    name: itop-{{ branch | lower  }}
+    tag: latest
+    push: yes
+    force: yes
+    path: "/root/iTop2-{{ branch }}"
+    username: "{{ quay_username }}"
+    password: "{{ quay_password }}"
+    push_args:
+      dest: quay.io/rajagabsi

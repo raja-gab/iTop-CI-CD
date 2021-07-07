@@ -1,0 +1,9 @@
+---
+# tasks file for cleanup_itop
+- name: Remove iTop deployment
+  k8s:
+    state: absent
+    api_version: v1
+    kind: Deployment
+    namespace: "itop-{{ branch | lower  }}"
+    name: itop

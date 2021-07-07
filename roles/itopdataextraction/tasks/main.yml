@@ -1,0 +1,65 @@
+---
+# tasks file for itopdataextraction
+- name: Ensure pods are running
+  k8s_info:
+    kind: Pod
+    namespace: "itop-{{ branch | lower  }}"
+    field_selectors:
+      - status.phase=Running
+  register: pods
+- name: Show pods msg
+  debug:
+    var: item
+  loop: "{{ pods | json_query('resources[*].metadata.name') }}"
+- name: Retrieve itop deployment address
+  k8s_info:
+    api_version: v1
+    kind: Service
+    name: itop-lb
+    namespace: "itop-{{ branch | lower  }}"
+  register: lb
+- name: Set variables for loadBalancer ip
+  set_fact:
+    lb_ip:  "{{lb.resources[0].status.loadBalancer.ingress[0].ip}}"
+- name: Show deployment address
+  debug:
+    msg: "{{ lb_ip }}"
+- name: Retrieve mariadb port
+  k8s_info:
+    api_version: v1
+    kind: Service
+    name: mariadb-service
+    namespace: "itop-{{ branch | lower  }}"
+  register: mariadb_port
+- name: Set variables for mariadb port
+  set_fact:
+    mariadb_port:  "{{ mariadb_port.resources[0].spec.ports[0].port }}"
+- name: Print Port
+  debug:
+    msg: "{{ mariadb_port }}"
+- name: Retrieve mariadb deployment address
+  k8s_info:
+    api_version: v1
+    kind: Service
+    name: mariadb-service
+    namespace: "itop-{{ branch | lower  }}"
+  register: mariadb_ip
+- name: Set variables for mariadb ip
+  set_fact:
+    mariadb_ip:  "{{ mariadb_ip.resources[0].spec.clusterIPs[0]}}"
+- name: Print node address
+  debug:
+    msg: "{{ mariadb_ip }}"
+- name: wait
+  pause:
+    seconds: 45
+- name: Send notification message via Slack
+  slack:
+    token: TV6CSFQKU/B01UR89RS1Z/8XVWw3gxNaYcd2DXiqj99OrH
+    msg: " *You are free to access iTop {{ branch }} using the following address* : {{ lb_ip }} ,\n
+      *Mariadb address/port* : {{ mariadb_ip }}:{{ mariadb_port }}."
+
+
+
+
+# *Running pods* ==> {{ pods | json_query('resources[*].metadata.name') }}

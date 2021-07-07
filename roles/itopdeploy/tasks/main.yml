@@ -1,0 +1,22 @@
+---
+# tasks file for itopdeploy
+- name: Create namespace
+  k8s:
+    name: "itop-{{ branch | lower  }}"
+    api_version: v1
+    kind: Namespace
+    state: present
+- name: Ensure deployment directory is created
+  file:
+    state: directory
+    path: "/home/raja/itop-{{ branch }}"
+    mode: 0755
+- name: Template deployment files
+  template:
+    src:  itop-deployment.yaml.j2
+    dest: "/home/raja/itop-{{ branch }}/itop-deployment.yaml"
+- name: Deploy k8s ressources
+  k8s:
+    src: "/home/raja/itop-{{ branch }}/itop-deployment.yaml"
+    state: present
+    apply: true

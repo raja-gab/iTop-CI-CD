@@ -1,0 +1,7 @@
+- name: clean up itop image from workers
+  hosts: k8s_workers
+  become: true
+  tasks:
+    - name: clean up container image
+      include_role:
+        name: cleanup_crio

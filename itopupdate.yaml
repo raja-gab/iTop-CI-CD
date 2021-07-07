@@ -1,0 +1,6 @@
+- name: itop update
+  hosts: k8s
+  tasks:
+    - name: Include update itop role
+      include_role:
+        name: itopupdate

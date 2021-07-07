@@ -1,0 +1,8 @@
+- name: data extraction
+  hosts: k8s
+  tasks:
+    - name: Data extraction from k8s
+      include_role:
+        name: itopdataextraction
+      vars:
+        branch: develop

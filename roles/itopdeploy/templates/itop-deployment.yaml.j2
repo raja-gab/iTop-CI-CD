@@ -1,0 +1,204 @@
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mariadb-pv-nfs-{{ branch | lower  }}
+spec:
+  accessModes:
+    - ReadWriteMany
+  capacity:
+    storage: 5Gi
+  persistentVolumeReclaimPolicy: Retain
+  nfs:
+    path: /mariadb-{{ branch | lower  }}
+    server: 10.112.42.52
+    readOnly: false
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mariadb-pvc-nfs-{{ branch | lower  }}
+  namespace: itop-{{ branch | lower  }}
+  labels:
+    app: mariadb
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+     requests:
+       storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mariadb
+  labels:
+    app: mariadb
+    type: database
+  namespace: itop-{{ branch | lower }}
+spec:
+  selector:
+    matchLabels:
+      app: mariadb
+  replicas: {{ mariadb_replicas }}
+  template:
+    metadata:
+      labels:
+        app: mariadb
+        type: database
+    spec:
+      containers:
+        - name: mariadb
+          image: mariadb:10.2-bionic
+          ports:
+            - containerPort: 3306
+              name: db-port
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: {{ mariadb_password }}
+          volumeMounts:
+            - name: mariadb-persistent-storage
+              mountPath: /var/lib/mysql
+      volumes:
+      - name: mariadb-persistent-storage
+        persistentVolumeClaim:
+          claimName: mariadb-pvc-nfs-{{ branch | lower  }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb-service
+  namespace: itop-{{ branch | lower  }}
+spec:
+  type: ClusterIP
+  selector:
+    app: mariadb
+  ports:
+    - protocol: TCP
+      port: 3306
+      targetPort: 3306
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: itop-pv-nfs-{{ branch | lower  }}
+spec:
+  accessModes:
+    - ReadWriteMany
+  capacity:
+    storage: 5Gi
+  persistentVolumeReclaimPolicy: Retain
+  nfs:
+    path: /itop-{{ branch | lower  }}
+    server: 10.112.42.52
+    readOnly: false
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: itop-pvc-nfs-{{ branch | lower  }}
+  namespace: itop-{{ branch | lower  }}
+  labels:
+    app: itop
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+     requests:
+       storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: itop
+  name: itop
+  namespace: itop-{{ branch | lower  }}
+spec:
+  replicas: {{ itop_replicas }}
+  selector:
+    matchLabels:
+      app: itop
+  template:
+    metadata:
+      labels:
+        app: itop
+    spec:
+      volumes:
+      - name: itop-pv-volume
+        persistentVolumeClaim:
+          claimName: itop-pvc-nfs-{{ branch | lower  }}
+      dnsConfig:
+        nameservers:
+        - 8.8.8.8
+      initContainers:
+      - name: init-cp-itop
+        image: quay.io/rajagabsi/itop-{{ branch | lower  }}:latest
+        command: ['sh', '-c', 'cp -r /tmp/itop/* /var/www/html/']
+        volumeMounts:
+        - name: itop-pv-volume
+          mountPath: /var/www/html
+      - name: init-chown-itop
+        image: quay.io/rajagabsi/itop-{{ branch | lower  }}:latest
+        command: ['sh', '-c', 'chown -R www-data:www-data /var/www/html']
+        volumeMounts:
+        - name: itop-pv-volume
+          mountPath: /var/www/html
+      containers:
+      - env:
+        - name: PATH
+          value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+        - name: TERM
+          value: xterm
+        - name: container
+          value: podman
+        - name: LC_ALL
+          value: en_US.UTF-8
+        - name: DEBIAN_FRONTEND
+          value: teletype
+        - name: LANG
+          value: en_US.UTF-8
+        - name: LANGUAGE
+          value: en_US:en
+        image: quay.io/rajagabsi/itop2:{{ branch | lower  }}
+        name: itop
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+          protocol: TCP
+        volumeMounts:
+        - name: itop-pv-volume
+          mountPath: /var/www/html
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "250m"
+          limits:
+            memory: "256Mi"
+            cpu: "800m"
+        securityContext:
+          allowPrivilegeEscalation: true
+          capabilities:
+            drop:
+            - CAP_MKNOD
+            - CAP_NET_RAW
+            - CAP_AUDIT_WRITE
+          privileged: false
+          readOnlyRootFilesystem: false
+          seLinuxOptions: {}
+        workingDir: /
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: itop-lb
+  namespace: itop-{{ branch | lower  }}
+spec:
+  type: LoadBalancer
+  selector:
+    app: itop
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+  sessionAffinity: ClientIP

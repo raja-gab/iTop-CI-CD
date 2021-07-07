@@ -1,0 +1,11 @@
+---
+- name: Build
+  hosts: buildNode
+  become: true
+  tasks:
+    - name: Include build role
+      include_role:
+        name: itopbuild
+      vars:
+        branch: develop
+        branch_prefix: ""

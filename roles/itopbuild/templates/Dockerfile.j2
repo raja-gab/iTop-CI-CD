@@ -1,0 +1,15 @@
+FROM quay.io/rajagabsi/baseimage
+
+# Get iTop
+RUN mkdir /tmp/itop/
+RUN git clone -b {{ branch }} http://10.112.42.91/rajagabsi/iTop.git
+RUN mv iTop/* /tmp/itop/
+
+RUN curl -SL -o /tmp/toolkit.zip http://www.combodo.com/documentation/iTopDataModelToolkit-2.7.zip
+RUN unzip /tmp/toolkit.zip -d /tmp/
+RUN cp -r /tmp/toolkit /tmp/itop/
+RUN rm -rf /tmp/toolkit**
+
+# Create shortcuts for the right management scripts, get latest Russian translations and fix rights
+CMD ["/usr/sbin/apache2ctl", "-DFOREGROUND"]
+EXPOSE 80

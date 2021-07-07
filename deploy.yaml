@@ -1,0 +1,10 @@
+- name: deploy itop
+  hosts: k8s
+  tasks:
+    - name: Include deploy role
+      include_role:
+        name: itopdeploy
+      vars:
+        branch: develop
+        mariadb_replicas: 1
+        itop_replicas: 1

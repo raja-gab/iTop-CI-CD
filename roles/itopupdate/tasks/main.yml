@@ -1,0 +1,15 @@
+---
+# tasks file for itopupdate
+- name: Search for pod labelled app=itop
+  k8s_info:
+    kind: Pod
+    namespace: itop-contract
+    label_selectors:
+      - app = itop
+  register: itop
+- name: Set variables for itop name
+  set_fact:
+    itop_name:  "{{itop.resources[0].metadata.name}}"
+- name: Copy code from iTop pod
+  command:
+    cmd: kubectl cp itop-contract/{{ itop_name }}:/var/www/html /home/raja/pod/

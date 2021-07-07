@@ -1,0 +1,6 @@
+- name: clean up itop
+  hosts: k8s
+  tasks:
+    - name: clean up itop deployment from k8s
+      include_role:
+        name: cleanup_itop

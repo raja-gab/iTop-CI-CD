@@ -1,0 +1,13 @@
+---
+# tasks file for cleanup_crio
+- name: check image
+  shell: |
+    crictl images | grep itop-{{ branch | lower  }}
+  register: image
+  failed_when: "image.rc == 2"
+- debug:
+    msg: "{{ image }}"
+- name: Remove iTop image
+  command:
+    cmd: crictl rmi quay.io/rajagabsi/itop-{{ branch | lower  }}
+  when:  image.stdout | length != 0
